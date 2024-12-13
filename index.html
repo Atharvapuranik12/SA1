@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shristika Ji</title>
+    <style>
+        body {
+            font-family: 'Comic Sans MS', cursive, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #E6E6FA, #FFB6C1);
+            text-align: center;
+            overflow: hidden;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: rgba(255, 255, 255, 0.9);
+            border-radius: 15px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            padding: 20px;
+        }
+
+        h1 {
+            color: #D5006D;
+            text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);
+        }
+
+        .button-container {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            background-color: #FF69B4;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: transform 0.3s, background-color 0.3s;
+            font-family: 'Comic Sans MS', cursive;
+        }
+
+        .btn:hover {
+            background-color: #FF1493;
+            transform: scale(1.05);
+        }
+
+        .game-section {
+            display: none;
+            margin-top: 20px;
+        }
+
+        #drawingCanvas, #pingPongCanvas {
+            border: 3px solid #FF69B4;
+            background-color: white;
+            max-width: 100%;
+            border-radius: 10px;
+        }
+
+        .drawing-controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        #colorPicker, #brushSize {
+            margin: 0 10px;
+        }
+
+        .color-palette {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .color-btn {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            border: 3px solid white;
+            cursor: pointer;
+            transition: transform 0.2s;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+
+        .color-btn:hover {
+            transform: scale(1.1);
+        }
+
+        #scoreDisplay {
+            font-size: 1.5em;
+            color: #FF69B4;
+            margin-bottom: 10px;
+            font-family: 'Comic Sans MS', cursive;
+        }
+
+        /* Heart animation for extra fun */
+        .heart {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background-color: pink;
+            clip-path: polygon(50% 0%, 0% 50%, 50% 100%, 100% 50%);
+            animation: heartAnimation 1.5s ease-in-out infinite;
+            z-index: -1;
+        }
+
+        @keyframes heartAnimation {
+            0% {
+                transform: translateY(0) scale(1);
+                opacity: 1;
+            }
+            50% {
+                transform: translateY(-30px) scale(1.5);
+                opacity: 0.7;
+            }
+            100% {
+                transform: translateY(0) scale(1);
+                opacity: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Shristika Ji💗💖</h1>
+        
+        <div class="button-container">
+            <button class="btn" onclick="showDrawing()">Drawing</button>
+            <button class="btn" onclick="showPingPong()">Ping Pong</button>
+            <button class="btn" onclick="showHearts()">Hearts!</button>
+        </div>
+
+        <!-- Drawing Section -->
+        <div id="drawingSection" class="game-section">
+            <canvas id="drawingCanvas" width="600" height="400"></canvas>
+            
+            <div class="drawing-controls">
+                <label>Brush Size:</label>
+                <input type="range" id="brushSize" min="1" max="20" value="5">
+                
+                <label>Color:</label>
+                <input type="color" id="colorPicker" value="#FF69B4">
+            </div>
+
+            <div class="color-palette">
+                <div class="color-btn" style="background-color: #FF69B4;" onclick="selectColor('#FF69B4')"></div>
+                <div class="color-btn" style="background-color: #E6E6FA;" onclick="selectColor('#E6E6FA')"></div>
+                <div class="color-btn" style="background-color: #FFB6C1;" onclick="selectColor('#FFB6C1')"></div>
+                <div class="color-btn" style="background-color: #D5006D;" onclick="selectColor('#D5006D')"></div>
+                <button class="btn" onclick="clearCanvas()">Clear</button>
+                <button class="btn" onclick="toggleEraser()">Eraser</button>
+            </div>
+        </div>
+
+        <!-- Ping Pong Section -->
+        <div id="pingPongSection" class="game-section">
+            <div id="scoreDisplay">Score: 0 - 0</div>
+            <canvas id="pingPongCanvas" width="600" height="400"></canvas>
+            
+            <div class="button-container">
+                <button class="btn" onclick="startGame()">Start Game</button>
+                <button class="btn" onclick="resetGame()">Reset</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Drawing Canvas Variables
+        const drawingCanvas = document.getElementById('drawingCanvas');
+        const drawingCtx = drawingCanvas.getContext('2d');
+        const colorPicker = document.getElementById('colorPicker');
+        const brushSize = document.getElementById('brushSize');
+
+        let isDrawing = false;
+        let currentColor = '#FF69B4';
+        let isErasing = false;
+
+        // Ping Pong Game Variables
+        const pingPongCanvas = document.getElementById('pingPongCanvas');
+        const pingPongCtx = pingPongCanvas.getContext('2d');
+        const scoreDisplay = document.getElementById('scoreDisplay');
+
+        let paddleHeight = 100;
+        let paddleWidth = 10;
+        let ballRadius = 10;
+        let playerPaddleY = pingPongCanvas.height / 2 - paddleHeight / 2;
+        let computerPaddleY = pingPongCanvas.height / 2 - paddleHeight / 2;
+        let ballX = pingPongCanvas.width / 2;
+        let ballY = pingPongCanvas.height / 2;
+        let ballSpeedX = 5;
+        let ballSpeedY = 5;
+        let playerScore = 0;
+        let computerScore = 0;
+        let gameRunning = false;
+
+        // Navigation Functions
+        function showDrawing() {
+            document.getElementById('drawingSection').style.display = 'block';
+            document.getElementById('pingPongSection').style.display = 'none';
+        }
+
+        function showPingPong() {
+            document.getElementById('drawingSection').style.display = 'none';
+            document.getElementById('pingPongSection').style.display = 'block';
+        }
+
+        // Hearts Function
+        function showHearts() {
+            for (let i = 0; i < 10; i++) {
+                const heart = document.createElement('div');
+                heart.classList.add('heart');
+                heart.style.left = Math.random() * 100 + 'vw';
+                heart.style.top = Math.random() * 100 + 'vh';
+                document.body.appendChild(heart);
+                setTimeout(() => heart.remove(), 2000);
+            }
+        }
+
+        // Drawing Canvas Functions
+        function selectColor(color) {
+            currentColor = color;
+            isErasing = false;
+        }
+
+        function toggleEraser() {
+            isErasing = !isErasing;
+            currentColor = isErasing ? 'white' : '#FF69B4';
+        }
+
+        function startDrawing(e) {
+            isDrawing = true;
+            draw(e);
+        }
+
+        function stopDrawing() {
+            isDrawing = false;
+            drawingCtx.beginPath();
+        }
+
+        function draw(e) {
+            if (!isDrawing) return;
+
+            const rect = drawingCanvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+
+            drawingCtx.lineWidth = brushSize.value;
+            drawingCtx.lineCap = 'round';
+            drawingCtx.strokeStyle = isErasing ? 'white' : currentColor;
+
+            drawingCtx.lineTo(x, y);
+            drawingCtx.stroke();
+            drawingCtx.beginPath();
+            drawingCtx.moveTo(x, y);
+        }
+
+        function clearCanvas() {
+            drawingCtx.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);
+        }
+
+        // Drawing Event Listeners
+        drawingCanvas.addEventListener('mousedown', startDrawing);
+        drawingCanvas.addEventListener('mousemove', draw);
+        drawingCanvas.addEventListener('mouseup', stopDrawing);
+        drawingCanvas.addEventListener('mouseout', stopDrawing);
+
+        // Ping Pong Game Functions
+        function drawPaddles() {
+            pingPongCtx.fillStyle = '#FF69B4';
+            pingPongCtx.fillRect(0, playerPaddleY, paddleWidth, paddleHeight);
+            pingPongCtx.fillRect(pingPongCanvas.width - paddleWidth, computerPaddleY, paddleWidth, paddleHeight);
+        }
+
+        function drawBall() {
+            pingPongCtx.beginPath();
+            pingPongCtx.arc(ballX, ballY, ballRadius, 0, Math.PI * 2);
+            pingPongCtx.fillStyle = '#E6E6FA';
+            pingPongCtx.fill();
+            pingPongCtx.closePath();
+        }
+
+        function moveBall() {
+            ballX += ballSpeedX;
+            ballY += ballSpeedY;
+
+            // Ball collision with top and bottom walls
+            if (ballY - ballRadius < 0 || ballY + ballRadius > pingPongCanvas.height) {
+                ballSpeedY = -ballSpeedY;
+            }
+
+            // Ball collision with paddles
+            if (
+                (ballX - ballRadius < paddleWidth && 
+                ballY > playerPaddleY && 
+                ballY < playerPaddleY + paddleHeight) ||
+                (ballX + ballRadius > pingPongCanvas.width - paddleWidth && 
+                ballY > computerPaddleY && 
+                ballY < computerPaddleY + paddleHeight)
+            ) {
+                ballSpeedX = -ballSpeedX * 1.1; // Increase speed slightly
+            }
+
+            // Scoring
+            if (ballX < 0) {
+                computerScore++;
+                resetBall();
+            } else if (ballX > pingPongCanvas.width) {
+                playerScore++;
+                resetBall();
+            }
+
+            // Computer paddle AI
+            let computerPaddleCenter = computerPaddleY + paddleHeight / 2;
+            if (computerPaddleCenter < ballY) {
+                computerPaddleY += 5;
+            } else {
+                computerPaddleY -= 5;
+            }
+
+            // Keep computer paddle within canvas
+            computerPaddleY = Math.max(0, Math.min(pingPongCanvas.height - paddleHeight, computerPaddleY));
+        }
+
+        function resetBall() {
+            ballX = pingPongCanvas.width / 2;
+            ballY = pingPongCanvas.height / 2;
+            ballSpeedX = Math.sign(ballSpeedX) * 5;
+            ballSpeedY = 5;
+            scoreDisplay.textContent = `Score: ${playerScore} - ${computerScore}`;
+        }
+
+        function gameLoop() {
+            if (!gameRunning) return;
+
+            pingPongCtx.clearRect(0, 0, pingPongCanvas.width, pingPongCanvas.height);
+            drawPaddles();
+            drawBall();
+            moveBall();
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        function startGame() {
+            if (!gameRunning) {
+                gameRunning = true;
+                gameLoop();
+            }
+        }
+
+        function resetGame() {
+            gameRunning = false;
+            playerScore = 0;
+            computerScore = 0;
+            ballX = pingPongCanvas.width / 2;
+            ballY = pingPongCanvas.height / 2;
+            playerPaddleY = pingPongCanvas.height / 2 - paddleHeight / 2;
+            computerPaddleY = pingPongCanvas.height / 2 - paddleHeight / 2;
+            scoreDisplay.textContent = 'Score: 0 - 0';
+        }
+
+        // Player paddle movement
+        pingPongCanvas.addEventListener('mousemove', (e) => {
+            const rect = pingPongCanvas.getBoundingClientRect();
+            playerPaddleY = e.clientY - rect.top - paddleHeight / 2;
+            
+            // Keep paddle within canvas
+            playerPaddleY = Math.max(0, Math.min(pingPongCanvas.height - paddleHeight, playerPaddleY));
+        });
+
+        // Initialize first view
+        showDrawing();
+    </script>
+</body>
+</html>
